@@ -143,6 +143,13 @@ class assessmentgrades extends \core\task\scheduled_task {
                     $stuassessinternal[$key]['mark'] = '';
                 }
                 /* TODO: ACTUAL GRADE */
+                if ($DB->record_exists('grade_grades', array('itemid'=>$stuassessinternal[$key]['giid'], 'userid'=>$stuassessinternal[$key]['uid'])) {
+                    $stuassessinternal[$key]['gradecalc'] = $DB->get_field('grade_grades', 'finalgrade',
+                        array('itemid'=>$stuassessinternal[$key]['giid'], 'userid'=>$stuassessinternal[$key]['uid'], 'rawscaleid'=> 2));
+                } else {
+                    $stuassessinternal[$key]['gradecalc'] = '';
+                }
+
                 if ($DB->record_exists('grade_grades', array('assignment'=>$stuassessinternal[$key]['aid'], 'userid'=>$stuassessinternal[$key]['uid'])) {
                     $stuassessinternal[$key]['fbgiven'] = $DB->get_field('grade_grades', 'timemodified',
                         array('itemid'=>$stuassessinternal[$key]['gid'], 'userid'=>$stuassessinternal[$key]['uid']));

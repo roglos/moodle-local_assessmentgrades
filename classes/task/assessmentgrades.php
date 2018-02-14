@@ -118,7 +118,7 @@ class assessmentgrades extends \core\task\scheduled_task {
         foreach ($stuassess as $sa) {
             $idnumber = 's'.$sa['student_code'];
             $key = $idnumber.$sa['assessment_idcode'];
-            if ($DB->record_exists('user', array('idnumber'=>$idnumber)) {
+            if ($DB->record_exists('user', array('idnumber'=>$idnumber))) {
                 $stuassessinternal[$key]['key']=$key;
                 $stuassessinternal[$key]['username']='s'.$sa['student_code'];
                 $stuassessinternal[$key]['userid'] = $DB->get_field('user', 'id',

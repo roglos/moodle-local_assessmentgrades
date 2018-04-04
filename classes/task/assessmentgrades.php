@@ -50,6 +50,7 @@ class assessmentgrades extends \core\task\scheduled_task {
     public function execute() {
 
         global $CFG, $DB;
+        require_once("$CFG->libdir/gradelib.php");
 
         // Check connection and label Db/Table in cron output for debugging if required.
         if (!$this->get_config('dbtype')) {
@@ -98,6 +99,7 @@ class assessmentgrades extends \core\task\scheduled_task {
          *     student_fbset_date                               *
          *     student_fbset_time                               *
          ********************************************************/
+         echo 'Fetching '.$tablestuassm.'<br>';
         $sql = $this->db_get_sql($tablestuassm, array(), array(), true);
         if ($rs = $extdb->Execute($sql)) {
             if (!$rs->EOF) {
@@ -115,49 +117,96 @@ class assessmentgrades extends \core\task\scheduled_task {
             return 4;
         }
 
+        /* Create keyed array of student data (grades etc) per student~assignment
+         * ---------------------------------------------------------------------- */
+         echo 'Creating keyed array<br>';
         foreach ($stuassess as $sa) {
+        if ($sa['student_code'] == '1504720' || $sa['student_code'] == '1505191') { //NB TESTING CONDITIONAL ONLY REMOVE ONCE DONE!!!!!!!!!!
+
             $idnumber = 's'.$sa['student_code'];
             $key = $idnumber.'~'.$sa['assessment_idcode'];
-            if ($DB->record_exists('user', array('idnumber'=>$idnumber)) &&
-                    $DB->record_exists('course_modules',
-                    array('idnumber'=>$stuassessinternal[$key]['assessment_idcode']))) {
+            echo $key.'<br>';
+            // If user exists and assessment id code exists.
+//            if ($DB->record_exists('user', array('idnumber'=>$idnumber)) &&
+//                    $DB->record_exists('course_modules',
+//                    array('idnumber'=>$stuassessinternal[$key]['assessment_idcode']))) {
                 $stuassessinternal[$key]['key']=$key;
-                $stuassessinternal[$key]['uname']='s'.$sa['student_code']; // Username.
+echo 'key = '.$stuassessinternal[$key]['key'].'<br>';
+echo 'studentcode = '.$sa['student_code'].': assessment idcode = '.$sa['assessment_idcode'].'<br>';
+                $stuassessinternal[$key]['username']='s'.$sa['student_code']; // Username.
+echo ': username = '.$stuassessinternal[$key]['username'].'<br>';
+
                 $stuassessinternal[$key]['uid'] = $DB->get_field('user', 'id',
                     array('idnumber'=>$stuassessinternal[$key]['username'])); // User id.
+echo ': uid = '.$stuassessinternal[$key]['uid'].'<br>';
+
                 $stuassessinternal[$key]['lc'] = $sa['assessment_idcode']; // Assessment linkcode
+echo ': lc = '.$stuassessinternal[$key]['lc'].'<br>';
+
+                $stuassessinternal[$key]['crs'] = $DB->get_field('course_modules', 'course',
+                    array('idnumber'=>$stuassessinternal[$key]['lc'])); // Assignment id.
+echo ': crs = '.$stuassessinternal[$key]['crs'].'<br>';
+
                 $stuassessinternal[$key]['aid'] = $DB->get_field('course_modules', 'instance',
-                    array('idnumber'=>$stuassessinternal[$key]['assessment_idcode'])); // Assignment id.
+                    array('idnumber'=>$stuassessinternal[$key]['lc'])); // Assignment id.
+echo ': aid = '.$stuassessinternal[$key]['aid'].'<br>';
+
+                $stuassessinternal[$key]['mod'] = $DB->get_field('course_modules', 'module',
+                    array('idnumber'=>$stuassessinternal[$key]['lc'])); // Module id.
+echo ': mod = '.$stuassessinternal[$key]['mod'].'<br>';
+
                 $stuassessinternal[$key]['giid'] = $DB->get_field('grade_items', 'id',
                     array('iteminstance'=>$stuassessinternal[$key]['aid'])); // Grade item instance
-                if ($DB->record_exists('assign_submission', array('assignment'=>$stuassessinternal[$key]['aid'], 'userid'=>$stuassessinternal[$key]['uid'])) {
+echo ': giid = '.$stuassessinternal[$key]['giid'].'<br>';
+
+                // Get submission received date & time.
+                if ($DB->record_exists('assign_submission', array('assignment'=>$stuassessinternal[$key]['aid'], 'userid'=>$stuassessinternal[$key]['uid']))) {
                     $stuassessinternal[$key]['received'] = $DB->get_field('assign_submission', 'timemodified',
                         array('assignment'=>$stuassessinternal[$key]['aid'], 'userid'=>$stuassessinternal[$key]['uid']));
                 } else {
                     $stuassessinternal[$key]['received'] = '';
                 }
-                if ($DB->record_exists('grade_grades', array('itemid'=>$stuassessinternal[$key]['giid'], 'userid'=>$stuassessinternal[$key]['uid'])) {
-                    $stuassessinternal[$key]['mark'] = $DB->get_field('grade_grades', 'finalgrade',
-                        array('itemid'=>$stuassessinternal[$key]['giid'], 'userid'=>$stuassessinternal[$key]['uid'], 'rawscaleid'=> 0));
-                } else {
-                    $stuassessinternal[$key]['mark'] = '';
-                }
-                /* TODO: ACTUAL GRADE */
-                if ($DB->record_exists('grade_grades', array('itemid'=>$stuassessinternal[$key]['giid'], 'userid'=>$stuassessinternal[$key]['uid'])) {
-                    $stuassessinternal[$key]['gradecalc'] = $DB->get_field('grade_grades', 'finalgrade',
-                        array('itemid'=>$stuassessinternal[$key]['giid'], 'userid'=>$stuassessinternal[$key]['uid'], 'rawscaleid'=> 2));
-                } else {
-                    $stuassessinternal[$key]['gradecalc'] = '';
-                }
+                $stuassessinternal[$key]['received_date'] = date('Y-m-d', $stuassessinternal[$key]['received']);
+                $stuassessinternal[$key]['received_time'] = date('H:i:s', $stuassessinternal[$key]['received']);
+echo ': received = '.$stuassessinternal[$key]['received'].':'.$stuassessinternal[$key]['received_date'].' '.$stuassessinternal[$key]['received_time'].'<br>';
 
-                if ($DB->record_exists('grade_grades', array('assignment'=>$stuassessinternal[$key]['aid'], 'userid'=>$stuassessinternal[$key]['uid'])) {
+                // Fetch alphanumeric grade.
+                $fullscale = array(); // Clear any prior value.
+                if ($DB->record_exists('grade_grades', array('itemid'=>$stuassessinternal[$key]['giid'], 'userid'=>$stuassessinternal[$key]['uid']))) {
+                    // Get final grade.
+                    $stuassessinternal[$key]['gradenum'] = $DB->get_field('grade_grades', 'finalgrade',
+                        array('itemid'=>$stuassessinternal[$key]['giid'], 'userid'=>$stuassessinternal[$key]['uid']));
+                    // Get which scale.
+                    $stuassessinternal[$key]['gradescale'] = $DB->get_field('grade_grades', 'rawscaleid',
+                        array('itemid'=>$stuassessinternal[$key]['giid'], 'userid'=>$stuassessinternal[$key]['uid']));
+                    if ($stuassessinternal[$key]['gradescale'] !== 0) {
+                        $fullscale = $DB->get_record('scale',array('id'=>$stuassessinternal[$key]['gradescale']), 'scale');
+                        $scale = explode(',',$fullscale->scale);
+                        $stuassessinternal[$key]['gradeletter'] = $scale[$stuassessinternal[$key]['gradenum']-1]; // Arrays start from 0!
+                        $stuassessinternal[$key]['gradenum'] = ''; // If an text grade is set, remove numeric value.
+                    }
+                    // Compare final mark to scale to get grade.
+                } else {
+                    $stuassessinternal[$key]['gradenum'] = '';
+                }
+echo ': gradenum = '.$stuassessinternal[$key]['gradenum'].'<br>';
+echo ': gradescale = '.$stuassessinternal[$key]['gradescale'].'<br>';
+echo ': gradeletter = '.$stuassessinternal[$key]['gradeletter'].'<br>';
+
+                // Get feedback given date.
+                if ($DB->record_exists('grade_grades', array('itemid'=>$stuassessinternal[$key]['aid'], 'userid'=>$stuassessinternal[$key]['uid']))) {
                     $stuassessinternal[$key]['fbgiven'] = $DB->get_field('grade_grades', 'timemodified',
                         array('itemid'=>$stuassessinternal[$key]['gid'], 'userid'=>$stuassessinternal[$key]['uid']));
                 } else {
                     $stuassessinternal[$key]['fbgiven'] = '';
                 }
+                $stuassessinternal[$key]['fbgiven_date'] = date('Y-m-d', $stuassessinternal[$key]['fbgiven']);
+                $stuassessinternal[$key]['fbgiven_time'] = date('H:i:s', $stuassessinternal[$key]['fbgiven']);
+echo ': fbgiven = '.$stuassessinternal[$key]['fbgiven'].':'.$stuassessinternal[$key]['fbgiven_date'].' '.$stuassessinternal[$key]['fbgiven_time'].'<br>';
 
-            }
+//            }
+        } // END TESTING CONDITIONAL
+
         }
 print_r($stuassessinternal);
 

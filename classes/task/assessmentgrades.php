@@ -183,11 +183,11 @@ echo ': received = '.$stuassessinternal[$key]['received'].':'.$stuassessinternal
                         $fullscale = $DB->get_record('scale',array('id'=>$stuassessinternal[$key]['gradescale']), 'scale');
                         $scale = explode(',',$fullscale->scale);
                         $stuassessinternal[$key]['gradeletter'] = $scale[$stuassessinternal[$key]['gradenum']-1]; // Arrays start from 0!
-                        $stuassessinternal[$key]['gradenum'] = ''; // If an text grade is set, remove numeric value.
+                        $stuassessinternal[$key]['gradenum'] = null; // If an text grade is set, remove numeric value.
                     }
                     // Compare final mark to scale to get grade.
                 } else {
-                    $stuassessinternal[$key]['gradenum'] = '';
+                    $stuassessinternal[$key]['gradenum'] = null;
                 }
 echo ': gradenum = '.$stuassessinternal[$key]['gradenum'].'<br>';
 echo ': gradescale = '.$stuassessinternal[$key]['gradescale'].'<br>';
@@ -205,11 +205,67 @@ echo ': gradeletter = '.$stuassessinternal[$key]['gradeletter'].'<br>';
 echo ': fbgiven = '.$stuassessinternal[$key]['fbgiven'].':'.$stuassessinternal[$key]['fbgiven_date'].' '.$stuassessinternal[$key]['fbgiven_time'].'<br>';
 
 //            }
+        $studentcode = mb_substr($stuassessinternal[$key]['username'],1);
+        if ($stuassessinternal[$key]['received_date'] != ''){
+            $sql = "UPDATE " . $tablestuassm . "
+                SET received_date = '" . $stuassessinternal[$key]['received_date'] . "'
+                WHERE
+                  assessment_idcode = '" . $stuassessinternal[$key]['lc'] . "' AND
+                  student_code = '" . $studentcode . "';";
+            echo $sql.'<br>';
+            $extdb->Execute($sql);
+        }
+        if ($stuassessinternal[$key]['received_time'] != ''){
+            $sql = "UPDATE " . $tablestuassm . "
+                SET received_time = '" . $stuassessinternal[$key]['received_time'] . "'
+                WHERE
+                  assessment_idcode = '" . $stuassessinternal[$key]['lc'] . "' AND
+                  student_code = '" . $studentcode . "';";
+            echo $sql.'<br>';
+            $extdb->Execute($sql);
+        }
+        if ($stuassessinternal[$key]['gradenum'] != ''){
+            $sql = "UPDATE " . $tablestuassm . "
+                SET actual_mark = '" . $stuassessinternal[$key]['gradenum'] . "'
+                WHERE
+                  assessment_idcode = '" . $stuassessinternal[$key]['lc'] . "' AND
+                  student_code = '" . $studentcode . "';";
+            echo $sql.'<br>';
+            $extdb->Execute($sql);
+        }
+        if ($stuassessinternal[$key]['gradeletter'] != ''){
+            $sql = "UPDATE " . $tablestuassm . "
+                SET actual_grade = '" . $stuassessinternal[$key]['gradeletter'] . "'
+                WHERE
+                  assessment_idcode = '" . $stuassessinternal[$key]['lc'] . "' AND
+                  student_code = '" . $studentcode . "';";
+            echo $sql.'<br>';
+            $extdb->Execute($sql);
+        }
+        if ($stuassessinternal[$key]['fbgiven_date'] != ''){
+            $sql = "UPDATE " . $tablestuassm . "
+                SET student_fbset_date = '" . $stuassessinternal[$key]['fbgiven_date'] . "'
+                WHERE
+                  assessment_idcode = '" . $stuassessinternal[$key]['lc'] . "' AND
+                  student_code = '" . $studentcode . "';";
+            echo $sql.'<br>';
+            $extdb->Execute($sql);
+        }
+        if ($stuassessinternal[$key]['fbgiven_time'] != ''){
+            $sql = "UPDATE " . $tablestuassm . "
+                SET student_fbset_time = '" . $stuassessinternal[$key]['fbgiven_time'] . "'
+                WHERE
+                  assessment_idcode = '" . $stuassessinternal[$key]['lc'] . "' AND
+                  student_code = '" . $studentcode . "';";
+            echo $sql.'<br>';
+            $extdb->Execute($sql);
+        }
+
+
         } // END TESTING CONDITIONAL
 
         }
 print_r($stuassessinternal);
-
 
         // Free memory.
         $extdb->Close();
@@ -374,3 +430,4 @@ print_r($stuassessinternal);
         }
     }
 }
+

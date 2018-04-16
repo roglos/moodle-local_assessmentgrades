@@ -225,7 +225,7 @@ class assessmentgrades extends \core\task\scheduled_task {
                     $sql .= "student_fbset_time = '" . $stuassessinternal[$key]['fbgiven_time'] . "', ";
                     $changeflag = 1;
                 }
-                $sql .= "student_code = " . $studentcode ." WHERE "; // Prevents error from final comma.
+                $sql .= "process_flag = " . $changeflag ." WHERE ";
                 $sql .= "assessment_idcode = '" . $stuassessinternal[$key]['lc'] . "' AND
                             student_code = '" . $studentcode . "';";
                 if ($changeflag > 0) {

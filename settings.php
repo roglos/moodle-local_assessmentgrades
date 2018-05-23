@@ -126,24 +126,8 @@ if ($hassiteconfig) {
     $settings->add(new admin_setting_heading('local_assessmentgrades_remoteheader',
         get_string('settingsheaderremote', 'local_assessmentgrades'), ''));
 
-    // Table name - assignment defaults.
-//    $settings->add(new admin_setting_configtext('local_assessmentgrades/remotetable',
-//        get_string('remotetable', 'local_assessmentgrades'),
-//        get_string('remotetable_desc', 'local_assessmentgrades'), ''));
     // Table name - individual settings: extensions, grades etc.
     $settings->add(new admin_setting_configtext('local_assessmentgrades/remotegradestable',
         get_string('remotegradestable', 'local_assessmentgrades'),
         get_string('remotegradestable_desc', 'local_assessmentgrades'), ''));
-
-    // Fields to use.
-//    $settings->add(new admin_setting_configtext('local_assessmentgrades/linkcode',
-//        get_string('linkcode', 'local_assessmentgrades'),
-//        get_string('linkcode', 'local_assessmentgrades'), ''));
-//    $settings->add(new admin_setting_configtext('local_assessmentgrades/duedate',
-//        get_string('duedate', 'local_assessmentgrades'),
-//        get_string('duedate', 'local_assessmentgrades'), ''));
-//    $settings->add(new admin_setting_configtext('local_assessmentgrades/feedbackdue',
-//        get_string('feedbackdue', 'local_assessmentgrades'),
-//        get_string('feedbackdue', 'local_assessmentgrades'), ''));
-
 }

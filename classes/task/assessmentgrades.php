@@ -150,7 +150,7 @@ class assessmentgrades extends \core\task\scheduled_task {
                     array('iteminstance'=>$stuassessinternal[$key]['aid'])); // Grade item instance
 
                 // Get submission received date & time.
-                if ($DB->record_exists('assign_submission', array('assignment'=>$stuassessinternal[$key]['aid'], 'userid'=>$stuassessinternal[$key]['uid']))) {
+                if ($DB->record_exists('assign_submission', array('assignment'=>$stuassessinternal[$key]['aid'], 'userid'=>$stuassessinternal[$key]['uid'], 'status'=>'submitted'))) {
                     $stuassessinternal[$key]['received'] = $DB->get_field('assign_submission', 'timemodified',
                         array('assignment'=>$stuassessinternal[$key]['aid'], 'userid'=>$stuassessinternal[$key]['uid']));
                 } else {
@@ -225,7 +225,7 @@ class assessmentgrades extends \core\task\scheduled_task {
                     $sql .= "student_fbset_time = '" . $stuassessinternal[$key]['fbgiven_time'] . "', ";
                     $changeflag = 1;
                 }
-                $sql .= "process_flag = " . $changeflag ." WHERE ";
+                $sql .= "assessment_changebymoodle = " . $changeflag ." WHERE ";
                 $sql .= "assessment_idcode = '" . $stuassessinternal[$key]['lc'] . "' AND
                             student_code = '" . $studentcode . "';";
                 if ($changeflag > 0) {

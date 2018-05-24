@@ -52,6 +52,10 @@ class assessmentgrades extends \core\task\scheduled_task {
         global $CFG, $DB;
         require_once("$CFG->libdir/gradelib.php");
 
+        // Get grade letters.
+        $gradeletters = array();
+        $gradeletters = $DB->get_records_menu('grade_letters', array(), 'letter', 'letter, lowerboundary');
+
         // Check connection and label Db/Table in cron output for debugging if required.
         if (!$this->get_config('dbtype')) {
             echo 'Database not defined.<br>';
@@ -182,15 +186,24 @@ class assessmentgrades extends \core\task\scheduled_task {
                 // Get which scale.
                 $stuassessinternal[$key]['gradescale'] = $DB->get_field('grade_grades', 'rawscaleid',
                     array('itemid' => $stuassessinternal[$key]['giid'], 'userid' => $stuassessinternal[$key]['uid']));
+                echo ': grade scale = '.$stuassessinternal[$key]['gradescale'];
                 if (!is_null($stuassessinternal[$key]['gradescale']) && $stuassessinternal[$key]['gradescale'] !== 0) {
                     $fullscale = $DB->get_record('scale', array('id' => $stuassessinternal[$key]['gradescale']), 'scale');
                     $scale = explode(',', $fullscale->scale);
                     $stuassessinternal[$key]['gradeletter'] = $scale[$stuassessinternal[$key]['gradenum'] - 1];
-                    $stuassessinternal[$key]['gradenum'] = null; // If an text grade is set, remove numeric value.
+                    $stuassessinternal[$key]['gradenum'] = null; // If an scale grade is set, remove numeric value.
+                } else {
+                    $stuassessinternal[$key]['gradeletter'] = '';
+                    foreach($gradeletters as $l => $g) {
+                        echo $l.' = '.$gradeletters[$l].'  ';
+                        if ($stuassessinternal[$key]['gradeletter'] == '' && $stuassessinternal[$key]['gradenum'] >= $gradeletters[$l]) {
+                            $stuassessinternal[$key]['gradeletter'] = $l;
+                        }
+                    }
                 }
-                    // Compare final mark to scale to get grade.
             } else {
                 $stuassessinternal[$key]['gradenum'] = null;
+                $stuassessinternal[$key]['gradeletter'] = null;
             }
             // Get feedback given date.
             if ($DB->record_exists('grade_grades',

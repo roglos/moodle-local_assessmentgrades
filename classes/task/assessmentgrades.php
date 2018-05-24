@@ -132,19 +132,34 @@ class assessmentgrades extends \core\task\scheduled_task {
             $stuassessinternal[$key]['username'] = 's'.$sa['student_code']; // Username.
             echo ': username = '.$stuassessinternal[$key]['username'];
 
-            $stuassessinternal[$key]['uid'] = $DB->get_field('user', 'id',
-                array('username' => $stuassessinternal[$key]['username'])); // User id.
+            if ($DB->get_field('user', 'id',
+                array('username' => $stuassessinternal[$key]['username']))) {
+                    $stuassessinternal[$key]['uid'] = $DB->get_field('user', 'id',
+                        array('username' => $stuassessinternal[$key]['username'])); // User id.
+            } else {
+                $stuassessinternal[$key]['uid'] = '';
+            }
             echo ': idnumber = '.$stuassessinternal[$key]['uid'];
 
             $stuassessinternal[$key]['lc'] = $sa['assessment_idcode']; // Assessment linkcode.
             echo ': assessment link = '.$stuassessinternal[$key]['lc'];
 
-            $stuassessinternal[$key]['crs'] = $DB->get_field('course_modules', 'course',
-                array('idnumber' => $stuassessinternal[$key]['lc'])); // Course id.
+            if ($DB->get_field('course_modules', 'course',
+                array('idnumber' => $stuassessinternal[$key]['lc']))) {
+                    $stuassessinternal[$key]['crs'] = $DB->get_field('course_modules', 'course',
+                        array('idnumber' => $stuassessinternal[$key]['lc'])); // Course id.
+            } else {
+                $stuassessinternal[$key]['crs'] = '';
+            }
             echo ': course id = '.$stuassessinternal[$key]['crs'];
 
-            $stuassessinternal[$key]['aid'] = $DB->get_field('course_modules', 'instance',
-                array('idnumber' => $stuassessinternal[$key]['lc'])); // Assignment id.
+            if ($DB->get_field('course_modules', 'instance',
+                array('idnumber' => $stuassessinternal[$key]['lc']))) {
+                    $stuassessinternal[$key]['aid'] = $DB->get_field('course_modules', 'instance',
+                        array('idnumber' => $stuassessinternal[$key]['lc'])); // Assignment id.
+            } else {
+                $stuassessinternal[$key]['aid'] = '';
+            }
             echo ': assignment id = '.$stuassessinternal[$key]['aid'];
 
             $stuassessinternal[$key]['mod'] = $DB->get_field('course_modules', 'module',
@@ -178,11 +193,17 @@ class assessmentgrades extends \core\task\scheduled_task {
 
             // Fetch alphanumeric grade.
             $fullscale = array(); // Clear any prior value.
+            $graderaw = $grademax = null;
             if ($DB->record_exists('grade_grades',
-                array('itemid' => $stuassessinternal[$key]['giid'], 'userid' => $stuassessinternal[$key]['uid']))) {
-                // Get final grade.
-                $stuassessinternal[$key]['gradenum'] = $DB->get_field('grade_grades', 'finalgrade',
+                array('itemid' => $stuassessinternal[$key]['giid'], 'userid' => $stuassessinternal[$key]['uid']))
+                && !is_null($DB->get_field('grade_grades', 'finalgrade',
+                    array('itemid' => $stuassessinternal[$key]['giid'], 'userid' => $stuassessinternal[$key]['uid'])))) {
+                // Get final grade and ensure %age.
+                $graderaw = $DB->get_field('grade_grades', 'finalgrade',
                     array('itemid' => $stuassessinternal[$key]['giid'], 'userid' => $stuassessinternal[$key]['uid']));
+                $grademax = $DB->get_field('grade_grades', 'rawgrademax',
+                    array('itemid' => $stuassessinternal[$key]['giid'], 'userid' => $stuassessinternal[$key]['uid']));
+                $stuassessinternal[$key]['gradenum'] = $graderaw / $grademax * 100;
                 // Get which scale.
                 $stuassessinternal[$key]['gradescale'] = $DB->get_field('grade_grades', 'rawscaleid',
                     array('itemid' => $stuassessinternal[$key]['giid'], 'userid' => $stuassessinternal[$key]['uid']));
@@ -191,12 +212,13 @@ class assessmentgrades extends \core\task\scheduled_task {
                     $fullscale = $DB->get_record('scale', array('id' => $stuassessinternal[$key]['gradescale']), 'scale');
                     $scale = explode(',', $fullscale->scale);
                     $stuassessinternal[$key]['gradeletter'] = $scale[$stuassessinternal[$key]['gradenum'] - 1];
-                    $stuassessinternal[$key]['gradenum'] = null; // If an scale grade is set, remove numeric value.
+                    $stuassessinternal[$key]['gradenum'] = null; // If a scale grade is set, remove numeric value.
                 } else {
                     $stuassessinternal[$key]['gradeletter'] = '';
-                    foreach($gradeletters as $l => $g) {
+                    foreach ($gradeletters as $l => $g) {
                         echo $l.' = '.$gradeletters[$l].'  ';
-                        if ($stuassessinternal[$key]['gradeletter'] == '' && $stuassessinternal[$key]['gradenum'] >= $gradeletters[$l]) {
+                        if ($stuassessinternal[$key]['gradeletter'] == ''
+                            && $stuassessinternal[$key]['gradenum'] >= $gradeletters[$l]) {
                             $stuassessinternal[$key]['gradeletter'] = $l;
                         }
                     }
@@ -205,6 +227,24 @@ class assessmentgrades extends \core\task\scheduled_task {
                 $stuassessinternal[$key]['gradenum'] = null;
                 $stuassessinternal[$key]['gradeletter'] = null;
             }
+            // Get assessment flags. eg. SB.
+            $asflag = '';
+            if (strlen($stuassessinternal[$key]['aid']) > 0 && strlen($stuassessinternal[$key]['uid']) > 0) {
+                $afsql = "SELECT c.content FROM {comments} c
+                        JOIN {assign_submission} sub ON sub.id = c.itemid
+                        WHERE sub.assignment = ".$stuassessinternal[$key]['aid']." AND sub.userid = ".
+                        $stuassessinternal[$key]['uid']."
+                        AND c.commentarea = 'submission_assessmentflags'";
+                $asflagresult = $DB->get_records_sql($afsql);
+                foreach ($asflagresult as $af) {
+                    $asflag = $af->content;
+                }
+                echo 'asflag: '. $asflag.' ';
+                if ($asflag != '') {
+                    $stuassessinternal[$key]['gradeletter'] = $asflag;
+                }
+            }
+
             // Get feedback given date.
             if ($DB->record_exists('grade_grades',
                 array('itemid' => $stuassessinternal[$key]['giid'], 'userid' => $stuassessinternal[$key]['uid']))) {

@@ -178,6 +178,10 @@ class assessmentgrades extends \core\task\scheduled_task {
                 'userid' => $stuassessinternal[$key]['uid'], 'status' => 'submitted'))) {
                 $stuassessinternal[$key]['received'] = $DB->get_field('assign_submission', 'timemodified',
                     array('assignment' => $stuassessinternal[$key]['aid'], 'userid' => $stuassessinternal[$key]['uid']));
+            } else if ($DB->record_exists('quiz_attempts', array('quiz' => $stuassessinternal[$key]['aid'],
+                'userid' => $stuassessinternal[$key]['uid'], 'state' => 'finished'))) {
+                $stuassessinternal[$key]['received'] = $DB->get_field('quiz_attempts', 'timefinish',
+                    array('quiz' => $stuassessinternal[$key]['aid'], 'userid' => $stuassessinternal[$key]['uid']));
             } else {
                 $stuassessinternal[$key]['received'] = '';
             }

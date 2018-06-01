@@ -455,14 +455,15 @@ class assessmentgrades extends \core\task\scheduled_task {
      * @return string value
      */
     public function set_config($name, $value) {
-        $pluginname = $this->get_name();
+        // $pluginname = $this->get_name();
+        $settingspluginname = 'assessmentsettings';
         $this->load_config();
         if ($value === null) {
             unset($this->config->$name);
         } else {
             $this->config->$name = $value;
         }
-        set_config($name, $value, "local_$pluginname");
+        set_config($name, $value, "local_$settingspluginname");
     }
 
     /**
@@ -471,8 +472,9 @@ class assessmentgrades extends \core\task\scheduled_task {
      */
     public function load_config() {
         if (!isset($this->config)) {
-            $name = $this->get_name();
-            $this->config = get_config("local_$name");
+            // $name = $this->get_name();
+            $settingspluginname = 'assessmentsettings';
+            $this->config = get_config("local_$settingspluginname");
         }
     }
 }

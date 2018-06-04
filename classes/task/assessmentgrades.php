@@ -123,12 +123,13 @@ class assessmentgrades extends \core\task\scheduled_task {
          * ---------------------------------------------------------------------- */
          echo 'Creating keyed array<br>';
         foreach ($stuassess as $sa) {
-
+            // Create key.
             $idnumber = 's'.$sa['student_code'];
             $key = $idnumber.'~'.$sa['assessment_idcode'];
             echo '<br>'.$key;
-
+            // Apply key to array.
             $stuassessinternal[$key]['key'] = $key;
+
             $stuassessinternal[$key]['username'] = 's'.$sa['student_code']; // Username.
             echo ': username = '.$stuassessinternal[$key]['username'];
 
@@ -455,7 +456,6 @@ class assessmentgrades extends \core\task\scheduled_task {
      * @return string value
      */
     public function set_config($name, $value) {
-        // $pluginname = $this->get_name();
         $settingspluginname = 'assessmentsettings';
         $this->load_config();
         if ($value === null) {
@@ -472,7 +472,6 @@ class assessmentgrades extends \core\task\scheduled_task {
      */
     public function load_config() {
         if (!isset($this->config)) {
-            // $name = $this->get_name();
             $settingspluginname = 'assessmentsettings';
             $this->config = get_config("local_$settingspluginname");
         }
